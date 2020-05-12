@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Numerics;
 
 namespace Fluid
 {
@@ -53,6 +54,82 @@ namespace Fluid
 		public static void SaveImage(Bitmap image, string path)
 		{
 			image.Save(path, ImageFormat.Png);
+		}
+
+        public static Vector3 SampleSobelGradient(float[, ,] data, int x, int y, int z)
+        {
+            float[,,] kernelX = new float[3, 3, 3] { { {1, 2, 1}, {2, 4, 2}, {1, 2, 1}},
+                                                        { {0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
+                                                        { {-1, -2, -1}, {-2, -4, -2}, {-1, -2, -1}}};
+
+            float[,,] kernelY = new float[3, 3, 3] { { {1, 2, 1}, {0, 0, 0}, {-1, -2, -1}},
+                                                        { {2, 4, 2}, {0, 0, 0}, {-2, -4, -2}},
+                                                        { {1, 2, 1}, {0, 0, 0}, {-1, -2, -1}}};
+
+            float[,,] kernelZ = new float[3, 3, 3] { { {1, 0, -1}, {2, 0, -2}, {1, 0, -1}},
+                                                        { {2, 0, -2},{4, 0, -4},{2, 0, -2}},
+                                                        { {1, 0, -1},{2, 0, -2},{1, 0, -1}}};
+
+            float dx = 0;
+            float dy = 0;
+            float dz = 0;
+            for (int k = 0; k < 3; k++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        float value = data[x + i - 1, y + j - 1, z + k - 1];
+                        dx += value * kernelX[i, j, k];
+                        dy += value * kernelY[i, j, k];
+                        dz += value * kernelZ[i, j, k];
+                    }
+                }
+            }
+            return new Vector3(dx/9, dy/9, dz/9);
+        }
+
+		public static Vector3[,,] SobelGradient(float[, ,] data)
+		{
+			int sizeX = data.GetLength(0);
+			int sizeY = data.GetLength(1);
+			int sizeZ = data.GetLength(2);
+
+			Vector3[,,] gradient = new Vector3[sizeX, sizeY, sizeZ];
+
+			// The outut gradient is smaller by 2 in each dimension (due to sobel kernels requiring neighbors)
+			for(int k = 1; k < sizeZ - 1; k++)
+			{
+				for (int j = 1; j < sizeY - 1; j++)
+				{
+					for (int i = 1; i < sizeX - 1; i++)
+					{
+						gradient[i, j, k] = SampleSobelGradient(data, i, j, k);
+					}
+				}
+			}
+			return gradient;
+		}
+
+		public static float[,,] GradientMagnitude(Vector3[, ,] data)
+		{
+			int sizeX = data.GetLength(0);
+			int sizeY = data.GetLength(1);
+			int sizeZ = data.GetLength(2);
+			float[,,] magnitude = new float[sizeX, sizeY, sizeZ];
+
+			for (int k = 1; k < sizeZ - 1; k++)
+			{
+				for (int j = 1; j < sizeY - 1; j++)
+				{
+					for (int i = 1; i < sizeX - 1; i++)
+					{
+						Vector3 gradValue = data[i, j, k];
+						magnitude[i, j, k] = gradValue.Length();
+					}
+				}
+			}
+			return magnitude;
 		}
 	}
 }

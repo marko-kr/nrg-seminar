@@ -12,17 +12,20 @@ namespace Fluid
 
 	class Program
 	{
-		static int[,] CreateSlice(Volume volume)
+		static int[,] CreateSlice(float[,,] data)
 		{
-			int[,] slice = new int[volume.Size, volume.Size];
-			int depth = (int)volume.Size / 2;
-			float min = volume.Min;
-			float max = volume.Max;
-			for (int i = 0; i < volume.Size; i++)
+			int sizeX = data.GetLength(0);
+			int sizeY = data.GetLength(1);
+			int sizeZ = data.GetLength(2);
+			int[,] slice = new int[sizeX, sizeY];
+			int depth = (int)sizeZ / 2;
+			float min = data.Cast<float>().Min();
+			float max = data.Cast<float>().Max();
+			for (int i = 0; i < sizeX; i++)
 			{
-				for (int j = 0; j < volume.Size; j++)
+				for (int j = 0; j < sizeY; j++)
 				{
-					slice[i, j] = (int)Math.Round(Utils.Map(volume.Data[i, j, depth], min, max, 0, 255));
+					slice[i, j] = (int)Math.Round(Utils.Map(data[i, j, depth], min, max, 0, 255));
 				}
 			}
 			return slice;
@@ -48,14 +51,12 @@ namespace Fluid
 		{
 			int volumeSize = 128;
 			Volume volume = new Volume(volumeSize, 100);
-			float v = volume.Data.Cast<float>().Max();
-			Console.WriteLine(string.Format("{0}", v));
+			Console.WriteLine("Generating noise...");
 			volume.AddPerlinNoise(0.03f, 20);
-			v = volume.Max;
-			Console.WriteLine(string.Format("{0}", v));
-			Utils.SaveImage(Utils.IntToBitmap(CreateSlice(volume)), "C:/Users/Mareee/Desktop/wd/noise.png");
-			for(int i = 0; i < 0; i++)
+			Utils.SaveImage(Utils.IntToBitmap(CreateSlice(volume.Data)), "C:/Users/Mareee/Desktop/wd/noise.png");
+			for(int i = 0; i < 5; i++)
 			{
+				Console.WriteLine("Diffussing...");
 				volume.Diffuse(1);
 			}
 			volume.AddFloor(5, 255);
@@ -64,12 +65,15 @@ namespace Fluid
 			surface.AddWave(0.15f, 2, new Vector2(-0.1f, 1));
 			surface.AddWave(0.08f, 1.2f, new Vector2(1, 1));
 			volume.ApplySurface(surface, 0);
+			//Vector3[,,] gradient = Utils.SobelGradient(volume.Data);
+			//float[,,] gradMagnitude = Utils.GradientMagnitude(gradient);
+			//Utils.SaveImage(Utils.IntToBitmap(CreateSlice(gradMagnitude)), "C:/Users/Mareee/Desktop/wd/gradient.png");
 			Utils.SaveImage(Utils.IntToBitmap(CreateSlice(surface)), "C:/Users/Mareee/Desktop/wd/surface.png");
-			Utils.SaveImage(Utils.IntToBitmap(CreateSlice(volume)), "C:/Users/Mareee/Desktop/wd/diffused.png");
-			v = volume.Data.Cast<float>().Max();
-			Console.WriteLine(string.Format("{0}", v));
-			volume.Export("C:/Users/Mareee/Desktop/wd/output");
-			Console.ReadLine();
+			Utils.SaveImage(Utils.IntToBitmap(CreateSlice(volume.Data)), "C:/Users/Mareee/Desktop/wd/diffused.png");
+			Console.WriteLine("Exporting...");
+			volume.Export("C:/Users/Mareee/Desktop/wd/output", true);
+			Console.Write("Done...");
+			Console.Read();
 		}
 	}
 }
