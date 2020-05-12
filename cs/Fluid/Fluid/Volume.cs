@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Fluid
 {
@@ -10,10 +11,15 @@ namespace Fluid
     {
         public float [,,] Data { get; }
         public int Size { get { return Data.GetLength(0); } }
+        public float[,,] BaseData { get; }
+        public float BaseValue { get; }
+        public float Max { get { return Data.Cast<float>().Max(); } }
+        public float Min { get { return Data.Cast<float>().Min(); } }
 
         public Volume(int size, float value = 0)
         {
             Data = new float[size, size, size];
+            BaseValue = value;
             for (int i = 0; i < Size; i++)
             {
                 for (int j = 0; j < Size; j++)
@@ -24,6 +30,7 @@ namespace Fluid
                     }
                 }
             }
+            BaseData = (float[,,]) Data.Clone(); 
         }
 
         public void AddPerlinNoise(float frequency, float offset = 1, int seed = 1337)
@@ -74,7 +81,6 @@ namespace Fluid
 
         public void Diffuse(float diff, int iterations = 15)
         {
-            float[,,] prev = Data.Clone() as float[,,];
             float a = diff * (float)Math.Pow(Size - 2, 3);
             for(int iter = 0; iter < iterations; iter++)
             {
@@ -84,7 +90,8 @@ namespace Fluid
                     {
                         for (int k = 1; k < Size-1; k++)
                         {
-                            Data[i, j, k] = (prev[i, j, k] + a * (Data[i - 1, j, k] + Data[i + 1, j, k] + Data[i, j - 1, k] + Data[i, j + 1, k] + Data[i, j, k - 1] + Data[i, j, k + 1])) / (1 + 6 * a);
+                            float v = a * (Data[i - 1, j, k] + Data[i + 1, j, k] + Data[i, j - 1, k] + Data[i, j + 1, k] + Data[i, j, k - 1] + Data[i, j, k + 1]);
+                            Data[i, j, k] = (BaseData[i, j, k] + v) / (1 + 6 * a);
                         }
                     }
                 }
@@ -92,6 +99,59 @@ namespace Fluid
                 Console.WriteLine(string.Format("{0}", iter));
             }
         }
- 
+
+        public void AddFloor(int thickness, float value)
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                for (int k = 0; k < Size; k++)
+                {
+                    for (int j = 0; j < thickness; j++)
+                    {
+                        Data[i, j, k] = value;
+                    }
+                }
+            }
+        }
+
+        public void ApplySurface(Surface surface, float airValue)
+        {
+            int max = (int)Math.Ceiling(surface.Max);
+            int min = (int)Math.Floor(surface.Min);
+            int baseHeight = Size - 1 - max;
+            if (baseHeight-min < 0)
+            {
+                throw new Exception("Surface amplitude exceeds volume");
+            }
+            for (int i = 0; i < Size; i++)
+            {
+                for (int k = 0; k < Size; k++)
+                {
+                    int surfaceHeight = (int)Math.Round(baseHeight + surface.Data[i, k]);
+                    for (int j = surfaceHeight; j < Size; j++)
+                    {
+                        Data[i, j, k] = airValue;
+                    }
+                }
+            }
+        }
+
+        public void Export(string path)
+        {
+            float max = Max;
+            float min = Min;
+            byte[] output = new byte[Size * Size * Size];
+            for (int k = 0; k < Size; k++)
+            {
+                for (int j = 0; j < Size; j++)
+                {
+                    for (int i = 0; i < Size; i++)
+                    {
+                        output[i + Size * (j + Size * k)] = (byte)(int)Math.Round(Utils.Map(Data[i, j, k], min, max, 0, 255));
+                    }
+                }
+            }
+            File.WriteAllBytes(path, output);
+        }
     }
 }

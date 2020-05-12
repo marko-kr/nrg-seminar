@@ -49,5 +49,10 @@ namespace Fluid
 			}
 			return bitmap;
 		}
+
+		public static void SaveImage(Bitmap image, string path)
+		{
+			image.Save(path, ImageFormat.Png);
+		}
 	}
 }
