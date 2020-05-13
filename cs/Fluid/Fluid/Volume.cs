@@ -145,11 +145,32 @@ namespace Fluid
             int reduced = Size - 2;
             int outputSize = reduced * reduced * reduced;
 
-            Vector3[,,] gradient = null; 
+            Vector3[,,] gradient = null;
+            float gradientDominant = 0;
+
             if(includeGradient) 
             { 
                 outputSize *= 4;
                 gradient = Utils.SobelGradient(Data);
+                float gradientMin = gradient[0, 0, 0].X;
+                float gradientMax = gradient[0, 0, 0].X;
+                for (int k = 0; k < gradient.GetLength(2);k++)
+                {
+                    for (int j = 0; j < gradient.GetLength(1); j++)
+                    {
+                        for (int i = 0; i < gradient.GetLength(0); i++)
+                        {
+                            Vector3 direction = gradient[i, j, k];
+                            if(direction.X < gradientMin) { gradientMin = direction.X; }
+                            if (direction.X > gradientMax) { gradientMax = direction.X; }
+                            if (direction.Y < gradientMin) { gradientMin = direction.Y; }
+                            if (direction.Y > gradientMax) { gradientMax = direction.Y; }
+                            if (direction.Z < gradientMin) { gradientMin = direction.Z; }
+                            if (direction.Z > gradientMax) { gradientMax = direction.Z; }
+                        }
+                    }
+                }
+                gradientDominant = Math.Max(Math.Abs(gradientMin), Math.Abs(gradientMax));
             }
             
             byte[] output = new byte[outputSize];
@@ -163,9 +184,9 @@ namespace Fluid
                         if (includeGradient) 
                         { 
                             outputIndex *= 4;
-                            output[outputIndex + 1] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].X, min, max, 0, 255));
-                            output[outputIndex + 2] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].Y, min, max, 0, 255));
-                            output[outputIndex + 3] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].Z, min, max, 0, 255));
+                            output[outputIndex + 1] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].X, -gradientDominant, gradientDominant, 0, 255));
+                            output[outputIndex + 2] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].Y, -gradientDominant, gradientDominant, 0, 255));
+                            output[outputIndex + 3] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].Z, -gradientDominant, gradientDominant, 0, 255));
                         }
                         output[outputIndex] = (byte)(int)Math.Round(Utils.Map(Data[i, j, k], min, max, 0, 255));
                     }

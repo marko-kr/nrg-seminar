@@ -49,12 +49,12 @@ namespace Fluid
 
 		static void Main(string[] args)
 		{
-			int volumeSize = 128;
+			int volumeSize = 130;
 			Volume volume = new Volume(volumeSize, 100);
 			Console.WriteLine("Generating noise...");
 			volume.AddPerlinNoise(0.03f, 20);
 			Utils.SaveImage(Utils.IntToBitmap(CreateSlice(volume.Data)), "C:/Users/Mareee/Desktop/wd/noise.png");
-			for(int i = 0; i < 5; i++)
+			for(int i = 0; i < 3; i++)
 			{
 				Console.WriteLine("Diffussing...");
 				volume.Diffuse(1);
