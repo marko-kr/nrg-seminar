@@ -52,14 +52,14 @@ namespace Fluid
 			int volumeSize = 130;
 			Volume volume = new Volume(volumeSize, 100);
 			Console.WriteLine("Generating noise...");
-			volume.AddPerlinNoise(0.03f, 20);
+			volume.AddPerlinNoise(0.03f, 50);
 			Utils.SaveImage(Utils.IntToBitmap(CreateSlice(volume.Data)), "C:/Users/Mareee/Desktop/wd/noise.png");
 			for(int i = 0; i < 3; i++)
 			{
 				Console.WriteLine("Diffussing...");
 				volume.Diffuse(1);
 			}
-			volume.AddFloor(5, 255);
+			volume.AddFloor(5, 200);
 			Surface surface = new Surface(volumeSize);
 			surface.AddWave(0.05f, 1.5f, new Vector2(0.1f, 1));
 			surface.AddWave(0.15f, 2, new Vector2(-0.1f, 1));

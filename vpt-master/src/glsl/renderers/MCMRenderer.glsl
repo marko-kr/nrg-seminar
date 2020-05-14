@@ -78,7 +78,7 @@ void resetPhoton(inout vec2 randState, inout Photon photon) {
     photon.position = from + tbounds.x * photon.direction;
     photon.transmittance = vec3(1);
     // CHANGE set density to 1
-    photon.density = 1.0;
+    photon.density = 0.5;
 }
 
 vec4 sampleEnvironmentMap(vec3 d) {
@@ -140,14 +140,17 @@ void main() {
         float t = -log(r.x) / uMajorant;
         photon.position += t * photon.direction;
 
+        // CHANGE move sampleing out of function because we need the gradient
         // CHANGE read gradient as vector and density
         float density = texture(uVolume, photon.position).r;
         vec3 gradient = texture(uVolume, photon.position).gba;
         // CHANGE gradiant coding requires it to be shifted by 0.5
         gradient -= vec3(0.5, 0.5, 0.5);
+        gradient *= 2.0;
         vec2 tfInput = vec2(density, length(gradient));
         vec4 transferSample = texture(uTransferFunction, tfInput);
 
+        //CHANGE volume sample to transfer sample because different name
         float muAbsorption = transferSample.a * uAbsorptionCoefficient;
         float muScattering = transferSample.a * uScatteringCoefficient;
         float muNull = uMajorant - muAbsorption - muScattering;
@@ -167,21 +170,35 @@ void main() {
             // max bounces achieved -> only estimate transmittance
             float weightAS = (muAbsorption + muScattering) / uMajorant;
             photon.transmittance *= 1.0 - weightAS;
+            photon.density = density;
         } else if (r.y < PAbsorption) {
             // absorption
             float weightA = muAbsorption / (uMajorant * PAbsorption);
             photon.transmittance *= 1.0 - weightA;
+            photon.density = density;
         } else if (r.y < PAbsorption + PScattering) {
             // scattering
             r = rand(r);
             float weightS = muScattering / (uMajorant * PScattering);
+            //CHANGE volume sample to transfer sample because different name
             photon.transmittance *= transferSample.rgb * weightS;
-            photon.direction = sampleHenyeyGreenstein(uScatteringBias, r, photon.direction);
+            //photon.direction = sampleHenyeyGreenstein(uScatteringBias, r, photon.direction);
+            //CHANGE
+            float eta = density/photon.density;
+            vec3 refracted = refract(normalize(photon.direction), normalize(gradient), eta);
+            if(length(refracted) != 0.0){
+                photon.direction = refracted;
+            }
+            else{
+                photon.direction = sampleHenyeyGreenstein(uScatteringBias, r, photon.direction);
+            }
             photon.bounces++;
+            photon.density = density;
         } else {
             // null collision
             float weightN = muNull / (uMajorant * PNull);
             photon.transmittance *= weightN;
+            photon.density = density;
         }
     }
 
@@ -266,7 +283,7 @@ void main() {
     photon.bounces = 0u;
     photon.samples = 0u;
     // CHANGE set denisty and apply to position alpha
-    photon.density = 1.0;
+    photon.density = 0.5;
     oPosition = vec4(photon.position, photon.density);
     oDirection = vec4(photon.direction, float(photon.bounces));
     oTransmittance = vec4(photon.transmittance, 0);

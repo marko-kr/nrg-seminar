@@ -105,6 +105,8 @@ namespace Fluid
 					for (int i = 1; i < sizeX - 1; i++)
 					{
 						gradient[i, j, k] = SampleSobelGradient(data, i, j, k);
+
+						//Console.WriteLine(String.Format("{0}, {1}, {2}", gradient[i, j, k].X, gradient[i, j, k].Y, gradient[i, j, k].Z));
 					}
 				}
 			}
