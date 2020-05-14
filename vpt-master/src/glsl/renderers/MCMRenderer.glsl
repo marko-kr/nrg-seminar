@@ -140,9 +140,16 @@ void main() {
         float t = -log(r.x) / uMajorant;
         photon.position += t * photon.direction;
 
-        vec4 volumeSample = sampleVolumeColor(photon.position);
-        float muAbsorption = volumeSample.a * uAbsorptionCoefficient;
-        float muScattering = volumeSample.a * uScatteringCoefficient;
+        // CHANGE read gradient as vector and density
+        float density = texture(uVolume, photon.position).r;
+        vec3 gradient = texture(uVolume, photon.position).gba;
+        // CHANGE gradiant coding requires it to be shifted by 0.5
+        gradient -= vec3(0.5, 0.5, 0.5);
+        vec2 tfInput = vec2(density, length(gradient));
+        vec4 transferSample = texture(uTransferFunction, tfInput);
+
+        float muAbsorption = transferSample.a * uAbsorptionCoefficient;
+        float muScattering = transferSample.a * uScatteringCoefficient;
         float muNull = uMajorant - muAbsorption - muScattering;
         float muMajorant = muAbsorption + muScattering + abs(muNull);
         float PNull = abs(muNull) / muMajorant;
@@ -168,7 +175,7 @@ void main() {
             // scattering
             r = rand(r);
             float weightS = muScattering / (uMajorant * PScattering);
-            photon.transmittance *= volumeSample.rgb * weightS;
+            photon.transmittance *= transferSample.rgb * weightS;
             photon.direction = sampleHenyeyGreenstein(uScatteringBias, r, photon.direction);
             photon.bounces++;
         } else {
