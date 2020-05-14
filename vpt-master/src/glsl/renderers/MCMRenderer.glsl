@@ -77,6 +77,8 @@ void resetPhoton(inout vec2 randState, inout Photon photon) {
     vec2 tbounds = max(intersectCube(from, photon.direction), 0.0);
     photon.position = from + tbounds.x * photon.direction;
     photon.transmittance = vec3(1);
+    // CHANGE set density to 1
+    photon.density = 1.0;
 }
 
 vec4 sampleEnvironmentMap(vec3 d) {
@@ -85,8 +87,13 @@ vec4 sampleEnvironmentMap(vec3 d) {
 }
 
 vec4 sampleVolumeColor(vec3 position) {
-    vec2 volumeSample = texture(uVolume, position).rg;
-    vec4 transferSample = texture(uTransferFunction, volumeSample);
+    // CHANGE read gradient as vector and density
+    float volumeSample = texture(uVolume, position).r;
+    vec3 gradient = texture(uVolume, position).gba;
+    // CHANGE gradiant coding requires it to be shifted by 0.5
+    gradient -= vec3(0.5, 0.5, 0.5);
+    vec2 tfInput = vec2(volumeSample, length(gradient));
+    vec4 transferSample = texture(uTransferFunction, tfInput);
     return transferSample;
 }
 
@@ -118,6 +125,7 @@ void main() {
     Photon photon;
     vec2 mappedPosition = vPosition * 0.5 + 0.5;
     photon.position = texture(uPosition, mappedPosition).xyz;
+    photon.density = texture(uPosition, mappedPosition).a;
     vec4 directionAndBounces = texture(uDirection, mappedPosition);
     photon.direction = directionAndBounces.xyz;
     photon.bounces = uint(directionAndBounces.w + 0.5);
@@ -170,7 +178,7 @@ void main() {
         }
     }
 
-    oPosition = vec4(photon.position, 0);
+    oPosition = vec4(photon.position, photon.density);
     oDirection = vec4(photon.direction, float(photon.bounces));
     oTransmittance = vec4(photon.transmittance, 0);
     oRadiance = vec4(photon.radiance, float(photon.samples));
@@ -250,7 +258,9 @@ void main() {
     photon.radiance = vec3(1);
     photon.bounces = 0u;
     photon.samples = 0u;
-    oPosition = vec4(photon.position, 0);
+    // CHANGE set denisty and apply to position alpha
+    photon.density = 1.0;
+    oPosition = vec4(photon.position, photon.density);
     oDirection = vec4(photon.direction, float(photon.bounces));
     oTransmittance = vec4(photon.transmittance, 0);
     oRadiance = vec4(photon.radiance, float(photon.samples));

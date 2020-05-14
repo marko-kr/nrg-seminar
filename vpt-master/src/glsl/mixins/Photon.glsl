@@ -1,7 +1,7 @@
 // #package glsl/mixins
 
 // #section Photon
-
+//CHANGE add density float
 struct Photon {
     vec3 position;
     vec3 direction;
@@ -9,4 +9,5 @@ struct Photon {
     vec3 radiance;
     uint bounces;
     uint samples;
+    float density;
 };
