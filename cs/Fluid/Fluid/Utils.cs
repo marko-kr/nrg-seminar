@@ -11,6 +11,7 @@ namespace Fluid
 {
 	public static class Utils
 	{
+		// function for mapping float values
 		public static float Map(float x, float in_min, float in_max, float out_min, float out_max)
 		{
 			return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -23,6 +24,7 @@ namespace Fluid
 			return x;
 		}
 
+		// Convert 2d int array to a bitmap
 		public static Bitmap IntToBitmap(int[,] data)
 		{
 			int width = data.GetLength(0);
@@ -51,11 +53,13 @@ namespace Fluid
 			return bitmap;
 		}
 
+		// Save bitmap to png file
 		public static void SaveImage(Bitmap image, string path)
 		{
 			image.Save(path, ImageFormat.Png);
 		}
 
+		// Sample sobel gradient at a 3d position
         public static Vector3 SampleSobelGradient(float[, ,] data, int x, int y, int z)
         {
             float[,,] kernelX = new float[3, 3, 3] { { {1, 2, 1}, {2, 4, 2}, {1, 2, 1}},
@@ -89,6 +93,7 @@ namespace Fluid
             return new Vector3(dx/9, dy/9, dz/9);
         }
 
+		// Calculate sobel for a certain volume
 		public static Vector3[,,] SobelGradient(float[, ,] data)
 		{
 			int sizeX = data.GetLength(0);
@@ -113,6 +118,7 @@ namespace Fluid
 			return gradient;
 		}
 
+		// Calculate magnitude of gradient volume
 		public static float[,,] GradientMagnitude(Vector3[, ,] data)
 		{
 			int sizeX = data.GetLength(0);

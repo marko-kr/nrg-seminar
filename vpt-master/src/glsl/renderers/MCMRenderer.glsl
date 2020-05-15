@@ -184,9 +184,9 @@ void main() {
             photon.transmittance *= transferSample.rgb * weightS;
             //photon.direction = sampleHenyeyGreenstein(uScatteringBias, r, photon.direction);
             //CHANGE
-            float eta = density/photon.density;
-            vec3 refracted = refract(normalize(photon.direction), normalize(gradient), eta);
-            if(length(refracted) != 0.0){
+            float eta = 0.3 * (density/photon.density);
+            if(length(gradient) != 0.0){
+                vec3 refracted = refract(normalize(photon.direction), normalize(gradient), eta);
                 photon.direction = refracted;
             }
             else{

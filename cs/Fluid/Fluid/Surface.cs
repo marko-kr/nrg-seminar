@@ -26,11 +26,13 @@ namespace Fluid
             }
         }
 
+        // evaluate a wave at x and y
         private float EvaluateWave(float x, float y, float frequency, float amplitude, Vector2 direction)
         {
             return amplitude * (float)Math.Sin(frequency * (direction.X * x + direction.Y * y));
         }
 
+        // apply a wave to the existing surface
         public void AddWave(float frequency, float amplitude, Vector2 direction)
         {
             direction = Vector2.Normalize(direction);

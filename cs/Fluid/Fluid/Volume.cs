@@ -21,11 +21,11 @@ namespace Fluid
         {
             Data = new float[size, size, size];
             BaseValue = value;
-            for (int i = 0; i < Size; i++)
+            for (int i = 0; i < size; i++)
             {
-                for (int j = 0; j < Size; j++)
+                for (int j = 0; j < size; j++)
                 {
-                    for (int k = 0; k < Size; k++)
+                    for (int k = 0; k < size; k++)
                     {
                         Data[i, j, k] = value;
                     }
@@ -34,6 +34,7 @@ namespace Fluid
             BaseData = (float[,,]) Data.Clone(); 
         }
 
+        // Offsets the volume values with perlin noise
         public void AddPerlinNoise(float frequency, float offset = 1, int seed = 1337)
         {
             FastNoise noiseGenerator = new FastNoise(seed);
@@ -50,6 +51,7 @@ namespace Fluid
             }
         }
 
+        //Resolves the edges needed for the diffusion step
         private void ResolveEdges()
         {
             int n = Size;
@@ -80,6 +82,7 @@ namespace Fluid
             // Data[0, 0, 0] = Data[1, 0, 0] + Data[0, 1, 0] + Data[0, 0, 1]
         }
 
+        // Diffuses the volume using an iterative solver based on Gauss-Seidel relaxation
         public void Diffuse(float diff, int iterations = 15)
         {
             float a = diff * (float)Math.Pow(Size - 2, 3);
@@ -100,6 +103,7 @@ namespace Fluid
             }
         }
 
+        // Adds the floor to the volume
         public void AddFloor(int thickness, float value)
         {
             for (int i = 0; i < Size; i++)
@@ -114,6 +118,7 @@ namespace Fluid
             }
         }
 
+        // Applies a surface object to the volume to form a surface
         public void ApplySurface(Surface surface, float airValue)
         {
             int max = (int)Math.Ceiling(surface.Max);
@@ -137,9 +142,10 @@ namespace Fluid
         }
 
         
-
-        public void Export(string path, bool includeGradient = false)
+        // Exports the volume in raw data, can export the gradient as well
+        public void Export(string path, bool includeGradient = true)
         {
+            // get the max mand min values used for mapping values to fit in a single byte
             float max = Max;
             float min = Min;
             int reduced = Size - 2;
@@ -148,13 +154,13 @@ namespace Fluid
             Vector3[,,] gradient = null;
             float gradientDominant = 0;
 
+            // calculate the gradient and get the maximum absolute value for mapping purposes
             if(includeGradient) 
             { 
                 outputSize *= 4;
                 gradient = Utils.SobelGradient(Data);
                 float gradientMin = gradient[0, 0, 0].X;
                 float gradientMax = gradient[0, 0, 0].X;
-                float gradientSum = 0;
                 for (int k = 0; k < gradient.GetLength(2);k++)
                 {
                     for (int j = 0; j < gradient.GetLength(1); j++)
@@ -168,16 +174,13 @@ namespace Fluid
                             if (direction.Y > gradientMax) { gradientMax = direction.Y; }
                             if (direction.Z < gradientMin) { gradientMin = direction.Z; }
                             if (direction.Z > gradientMax) { gradientMax = direction.Z; }
-                            gradientSum += Math.Abs(direction.X) + Math.Abs(direction.Y) + Math.Abs(direction.Z);
-                            gradient[i, j, k] = Vector3.Normalize(gradient[i, j, k]);
                         }
                     }
                 }
                 gradientDominant = Math.Max(Math.Abs(gradientMin), Math.Abs(gradientMax));
-                float gradientAverage = gradientSum / (outputSize * 3);
-                Console.WriteLine(string.Format("Max:{0}, Avg:{1}", gradientDominant, gradientAverage));
              }
             
+            // sequentially map the volume and gradient data to fit into a singel byte
             byte[] output = new byte[outputSize];
             for (int k = 1; k < Size - 1; k++)
             {
@@ -189,15 +192,15 @@ namespace Fluid
                         if (includeGradient) 
                         { 
                             outputIndex *= 4;
-                            output[outputIndex + 1] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].X, -1, 1, 0, 255));
-                            output[outputIndex + 2] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].Y, -1, 1, 0, 255));
-                            output[outputIndex + 3] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].Z, -1, 1, 0, 255));
-                            //Console.WriteLine(String.Format("{0}, {1}, {2}", output[outputIndex + 1], output[outputIndex + 2], output[outputIndex + 3]));
+                            output[outputIndex + 1] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].X, -gradientDominant, gradientDominant, 0, 255));
+                            output[outputIndex + 2] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].Y, -gradientDominant, gradientDominant, 0, 255));
+                            output[outputIndex + 3] = (byte)(int)Math.Round(Utils.Map(gradient[i - 1, j - 1, k - 1].Z, -gradientDominant, gradientDominant, 0, 255));
                         }
                         output[outputIndex] = (byte)(int)Math.Round(Utils.Map(Data[i, j, k], min, max, 0, 255));
                     }
                 }
             }
+            // weite byte array to file
             File.WriteAllBytes(path, output);
         }
     }
