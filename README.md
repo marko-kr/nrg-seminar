@@ -7,4 +7,5 @@ Open the .sln project and run the code. The exports and visuals are saved in the
 
 ## VPT
 The vpt is based on the visual pathe tracer from: https://github.com/terier/vpt
-The modified version requires volumes to contain 4 bytes for each voxel. These are [volume, grad.x, grad.y, grad.z]
+The modified version requires volumes to contain 4 bytes for each voxel. These are [volume, grad.x, grad.y, grad.z].
+Build with make and open node server with node.
